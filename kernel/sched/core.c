@@ -4662,16 +4662,12 @@ context_switch(struct rq *rq, struct task_struct *prev,
 	// an elevated thread migrates onto a different core but for now
 	// doing this right before every context switch is sufficient.
 
-	unsigned int gs_low, gs_high;
 	unsigned long long kernel_gs;
 
     if (next->symbiote_elevated) {
-		// Read the GSBASE value from the MSR
-		asm volatile("rdmsr" : "=a" (gs_low), "=d" (gs_high) : "c" (0xC0000101));
+		// Read the GSBASE value
+		asm("rdgsbase %0" : "=rm"(kernel_gs) : : "memory");
 		
-		// Combine the gsbase low and high address values into a single 8 byte value
-		kernel_gs = (((unsigned long long)gs_high) << 32) | gs_low;
-
 		// Update the next task's gsbase value.
 		next->thread.gsbase = kernel_gs;
 	}
